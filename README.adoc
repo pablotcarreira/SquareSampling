@@ -1,0 +1,2 @@
+Qgis plugin that creates squares by clicking on a map.
+
