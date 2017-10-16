@@ -1,2 +1,9 @@
 Qgis plugin that creates squares by clicking on a map.
 
+
+Credits:
+- RectangleOval Plugin: https://github.com/vinayan/RectOvalDigitPlugin
+
+
+
+

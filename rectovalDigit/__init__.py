@@ -49,6 +49,6 @@ def email():
 
 def classFactory(iface):
     # load RectOvalDigit class from file RectOvalDigit
-    from rectovaldigit import RectOvalDigit
-    return RectOvalDigit(iface)
+    from square_sampling import SquareSampling
+    return SquareSampling(iface)
 
