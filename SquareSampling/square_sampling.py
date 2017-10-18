@@ -1,5 +1,5 @@
 # coding: utf-8
-#-----------------------------------------------------------
+# -----------------------------------------------------------
 # 
 # Square Sampling
 # Copyright (C) 2017 Pablo Carreira
@@ -7,7 +7,7 @@
 # Code adopted/adapted from:
 #  RectangleOval Plugin (Pavol Kapusta) : https://github.com/vinayan/RectOvalDigitPlugin
 #
-#-----------------------------------------------------------
+# -----------------------------------------------------------
 # 
 # licensed under the terms of GNU GPL 2
 # 
@@ -25,26 +25,26 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 # 
-#---------------------------------------------------------------------
+# ---------------------------------------------------------------------
 
+
+from qgis.core import *
 
 # Import the PyQt and the QGIS libraries
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-from qgis.core import *
-from qgis.gui import *
 
-#Import own classes and tools
-from rectovaldigittools import RectByExtentTool, RectFromCenterTool, SquareFromCenterTool, CircleFromCenterTool, OvalByExtentTool, OvalFromCenterTool, RotateTool
+# Import own classes and tools
+from tools import SquareFromCenterTool
+
 
 # initialize Qt resources from file resources.py
-import resources
+
 
 # Our main class for the plugin
 class SquareSampling:
-
     def __init__(self, iface):
-    # Save reference to the QGIS interface
+        # Save reference to the QGIS interface
         self.iface = iface
         self.canvas = self.iface.mapCanvas()
 
@@ -55,17 +55,18 @@ class SquareSampling:
         self.toolBar.setObjectName("SquareSampling")
 
         # Add actions
-        self.squarefromcenter = QAction(QIcon(":/plugins/rectovalDigit/icons/squarefromcenter.png"),  "Square from center",  self.iface.mainWindow())
-        self.toolBar.addActions( [self.squarefromcenter] )
+        self.squarefromcenter = QAction(QIcon(":/plugins/SquareSampling/icons/squarefromcenter.png"),
+                                        "Square from center", self.iface.mainWindow())
+        self.toolBar.addActions([self.squarefromcenter])
         self.squarefromcenter.setCheckable(True)
         self.squarefromcenter.setEnabled(False)
         self.toolBar.addSeparator()
 
         # Add spinbox - vai ser utilizado para determinar o tamanho do ratângulo.
-        self.spinBox = QSpinBox(self.iface.mainWindow())        
+        self.spinBox = QSpinBox(self.iface.mainWindow())
         self.spinBox.setMinimum(3)
         self.spinBox.setMaximum(72)
-        segvalue = settings.value("/RectOvalDigit/segments",36,type=int)
+        segvalue = settings.value("/RectOvalDigit/segments", 36, type=int)
         if not segvalue:
             settings.setValue("/RectOvalDigit/segments", 36)
         self.spinBox.setValue(segvalue)
@@ -73,78 +74,47 @@ class SquareSampling:
         self.spinBoxAction = self.toolBar.addWidget(self.spinBox)
         self.spinBox.setToolTip("Square size in map units")
         self.spinBoxAction.setEnabled(False)
-        
+
         # Connect to signals for button behaviour
-        QObject.connect(self.squarefromcenter,  SIGNAL("activated()"),  self.squarefromcenterdigit)
-        QObject.connect(self.spinBox,  SIGNAL("valueChanged(int)"),  self.segmentsettings)
+        QObject.connect(self.squarefromcenter, SIGNAL("activated()"), self.squarefromcenterdigit)
+        QObject.connect(self.spinBox, SIGNAL("valueChanged(int)"), self.segmentsettings)
         QObject.connect(self.iface, SIGNAL("currentLayerChanged(QgsMapLayer*)"), self.toggle)
         QObject.connect(self.canvas, SIGNAL("mapToolSet(QgsMapTool*)"), self.deactivate)
-    
+
         # Get the tools
-        self.squarefromcentertool = SquareFromCenterTool( self.canvas )
-        self.circlefromcentertool = CircleFromCenterTool( self.canvas )
+        self.squarefromcentertool = SquareFromCenterTool(self.canvas)
 
     def squarefromcenterdigit(self):
         self.canvas.setMapTool(self.squarefromcentertool)
         self.squarefromcenter.setChecked(True)
-        QObject.connect(self.squarefromcentertool, SIGNAL("rbFinished(PyQt_PyObject)"), self.createFeature) 
+        QObject.connect(self.squarefromcentertool, SIGNAL("rbFinished(PyQt_PyObject)"), self.createFeature)
 
     def selectionchanged(self):
-        mc = self.canvas
-        layer = mc.currentLayer() 
-        if layer.selectedFeatureCount() != 1:
-            self.rotaterectoval.setChecked(False)
-    
+        raise RuntimeError("Selecao alterada")
+
     def segmentsettings(self):
         settings = QSettings()
         settings.setValue("/RectOvalDigit/segments", self.spinBox.value())
 
-        
     def toggle(self):
         mc = self.canvas
         layer = mc.currentLayer()
-        #Decide whether the plugin button/menu is enabled or disabled
-        if layer <> None:
-            if (layer.isEditable() and layer.geometryType() == 2):
-                self.rectbyextent.setEnabled(True)
-                self.rectfromcenter.setEnabled(True)
+        # Decide whether the plugin button/menu is enabled or disabled
+        if layer is not None:
+            if layer.isEditable() and layer.geometryType() == 2:
                 self.squarefromcenter.setEnabled(True)
-                self.circlefromcenter.setEnabled(True)
-                self.ovalbyextent.setEnabled(True)
-                self.ovalfromcenter.setEnabled(True)
-                self.rotaterectoval.setEnabled(True)
                 self.spinBoxAction.setEnabled(True)
-                QObject.connect(layer,SIGNAL("editingStopped()"),self.toggle)
-                QObject.disconnect(layer,SIGNAL("editingStarted()"),self.toggle)
+                QObject.connect(layer, SIGNAL("editingStopped()"), self.toggle)
+                QObject.disconnect(layer, SIGNAL("editingStarted()"), self.toggle)
             else:
-                self.rectbyextent.setEnabled(False)
-                self.rectfromcenter.setEnabled(False)
                 self.squarefromcenter.setEnabled(False)
-                self.circlefromcenter.setEnabled(False)
-                self.ovalbyextent.setEnabled(False)
-                self.ovalfromcenter.setEnabled(False)
-                self.rotaterectoval.setEnabled(False)
                 self.spinBoxAction.setEnabled(False)
-                QObject.connect(layer,SIGNAL("editingStarted()"),self.toggle)
-                QObject.disconnect(layer,SIGNAL("editingStopped()"),self.toggle)
+                QObject.connect(layer, SIGNAL("editingStarted()"), self.toggle)
+                QObject.disconnect(layer, SIGNAL("editingStopped()"), self.toggle)
 
-                
     def deactivate(self):
-        self.rectbyextent.setChecked(False)
-        self.rectfromcenter.setChecked(False)
         self.squarefromcenter.setChecked(False)
-        self.circlefromcenter.setChecked(False)
-        self.ovalbyextent.setChecked(False)
-        self.ovalfromcenter.setChecked(False)
-        self.rotaterectoval.setChecked(False)
-        QObject.disconnect(self.rectbyextenttool, SIGNAL("rbFinished(PyQt_PyObject)"), self.createFeature)
-        QObject.disconnect(self.rectfromcentertool, SIGNAL("rbFinished(PyQt_PyObject)"), self.createFeature)
         QObject.disconnect(self.squarefromcentertool, SIGNAL("rbFinished(PyQt_PyObject)"), self.createFeature)
-        QObject.disconnect(self.circlefromcentertool, SIGNAL("rbFinished(PyQt_PyObject)"), self.createFeature)
-        QObject.disconnect(self.ovalbyextenttool, SIGNAL("rbFinished(PyQt_PyObject)"), self.createFeature)
-        QObject.disconnect(self.ovalfromcentertool, SIGNAL("rbFinished(PyQt_PyObject)"), self.createFeature)
-        QObject.disconnect(self.rotatetool, SIGNAL("rbFinished(PyQt_PyObject)"), self.changegeom)
-        
 
     def createFeature(self, geom):
         settings = QSettings()
@@ -155,14 +125,13 @@ class SquareSampling:
         projectCRSSrsid = renderer.destinationCrs().srsid()
         provider = layer.dataProvider()
         f = QgsFeature()
-        
-        
-        #On the Fly reprojection.
+
+        # On the Fly reprojection.
         if layerCRSSrsid != projectCRSSrsid:
             geom.transform(QgsCoordinateTransform(projectCRSSrsid, layerCRSSrsid))
-                                    
+
         f.setGeometry(geom)
-        
+
         # add attribute fields to feature
         fields = layer.pendingFields()
 
@@ -170,15 +139,14 @@ class SquareSampling:
 
         f.initAttributes(fields.count())
         for i in range(fields.count()):
-            f.setAttribute(i,provider.defaultValue(i))
+            f.setAttribute(i, provider.defaultValue(i))
 
         if not (settings.value("/qgis/digitizing/disable_enter_attribute_values_dialog")):
-            self.iface.openFeatureForm( layer, f, False)
-        
-        layer.beginEditCommand("Feature added")       
+            self.iface.openFeatureForm(layer, f, False)
+
+        layer.beginEditCommand("Feature added")
         layer.addFeature(f)
         layer.endEditCommand()
-
 
     def changegeom(self, result):
         mc = self.canvas
@@ -191,18 +159,10 @@ class SquareSampling:
         if layerCRSSrsid != projectCRSSrsid:
             geom.transform(QgsCoordinateTransform(projectCRSSrsid, layerCRSSrsid))
         layer.beginEditCommand("Feature rotated")
-        layer.changeGeometry( fid, geom )
+        layer.changeGeometry(fid, geom)
         layer.endEditCommand()
-        
+
     def unload(self):
-        self.toolBar.removeAction(self.rectbyextent)
-        self.toolBar.removeAction(self.rectfromcenter)
         self.toolBar.removeAction(self.squarefromcenter)
-        self.toolBar.removeAction(self.circlefromcenter)
-        self.toolBar.removeAction(self.ovalbyextent)
-        self.toolBar.removeAction(self.ovalfromcenter)
-        self.toolBar.removeAction(self.rotaterectoval)
         self.toolBar.removeAction(self.spinBoxAction)
         del self.toolBar
-   
- 
