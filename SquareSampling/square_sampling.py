@@ -55,7 +55,7 @@ class SquareSampling:
         self.toolBar.setObjectName("SquareSampling")
 
         # Add actions
-        self.squarefromcenter = QAction(QIcon(":/plugins/SquareSampling/icons/squarefromcenter.png"),
+        self.squarefromcenter = QAction(QIcon("icons/squarefromcenter.png"),
                                         "Square from center", self.iface.mainWindow())
         self.toolBar.addActions([self.squarefromcenter])
         self.squarefromcenter.setCheckable(True)
@@ -136,7 +136,6 @@ class SquareSampling:
         fields = layer.pendingFields()
 
         # vector api change update
-
         f.initAttributes(fields.count())
         for i in range(fields.count()):
             f.setAttribute(i, provider.defaultValue(i))

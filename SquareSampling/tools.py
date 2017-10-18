@@ -7,9 +7,9 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from qgis.core import *
 from qgis.gui import *
-import math
 
 
+# noinspection PyMethodMayBeStatic
 class SquareFromCenterTool(QgsMapTool):
     def __init__(self, canvas):
         QgsMapTool.__init__(self, canvas)
@@ -54,53 +54,27 @@ class SquareFromCenterTool(QgsMapTool):
         self.rb = QgsRubberBand(self.canvas, True)
         self.rb.setColor(color)
         self.rb.setWidth(1)
-        x = event.pos().x()
-        y = event.pos().y()
-        if self.mCtrl:
-            startingPoint = QPoint(x, y)
-            snapper = QgsMapCanvasSnapper(self.canvas)
-            (retval, result) = snapper.snapToCurrentLayer(startingPoint, QgsSnapper.SnapToVertex)
-            if result != []:
-                point = result[0].snappedVertex
-            else:
-                (retval, result) = snapper.snapToBackgroundLayers(startingPoint)
-                if result != []:
-                    point = result[0].snappedVertex
-                else:
-                    point = self.toLayerCoordinates(layer, event.pos())
-        else:
-            point = self.toLayerCoordinates(layer, event.pos())
-        pointMap = self.toMapCoordinates(layer, point)
-        self.xc = pointMap.x()
-        self.yc = pointMap.y()
-        if self.rb: return
+        point = self.toLayerCoordinates(layer, event.pos())
+        point_map = self.toMapCoordinates(layer, point)
+        xc = point_map.x()
+        yc = point_map.y()
 
-    def canvasMoveEvent(self, event):
-        if not self.rb: return
-        currpoint = self.toMapCoordinates(event.pos())
-        distance = math.sqrt(currpoint.sqrDist(self.xc, self.yc))
-        offset = distance / math.sqrt(2)
-        self.rb.reset(True)
+        offset = 100
+
         pt1 = (-offset, -offset)
         pt2 = (-offset, offset)
         pt3 = (offset, offset)
         pt4 = (offset, -offset)
         points = [pt1, pt2, pt3, pt4]
-        polygon = [QgsPoint(i[0] + self.xc, i[1] + self.yc) for i in points]
-        # delete [self.rb.addPoint( point ) for point in polygon]
+
+        polygon = [QgsPoint(i[0] + xc, i[1] + yc) for i in points]
+        # noinspection PyCallByClass,PyArgumentList
         self.rb.setToGeometry(QgsGeometry.fromPolygon([polygon]), None)
-
-    def canvasReleaseEvent(self, event):
-        if not self.rb: return
-        if self.rb.numberOfVertices() > 2:
-            geom = self.rb.asGeometry()
-            self.emit(SIGNAL("rbFinished(PyQt_PyObject)"), geom)
-
-        self.rb.reset(True)
-        self.rb = None
-
+        geom = self.rb.asGeometry()
+        self.emit(SIGNAL("rbFinished(PyQt_PyObject)"), geom)
         self.canvas.refresh()
 
+    # noinspection PyPep8Naming
     def showSettingsWarning(self):
         pass
 
